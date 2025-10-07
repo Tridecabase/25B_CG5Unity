@@ -1,4 +1,4 @@
-Shader "Unlit/Texture"
+Shader "Unlit/Texture_2"
 {
      Properties
     {
@@ -54,7 +54,22 @@ Shader "Unlit/Texture"
             {
                 float2 tiling = _MainTex_ST.xy;
                 float2 offset = _MainTex_ST.zw;
+
+                float4 ambient = _Color * 0.3 * _LightColor0; // 環境光成分
+
+                float intensity =
+                    saturate(dot(normalize(i.normal), _WorldSpaceLightPos0));
+                fixed4 diffuse = _Color * _LightColor0 * intensity;
+
+                float3 eyeDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPosition);  // 視線ベクトル
+                float3 lightDir = normalize(_WorldSpaceLightPos0.xyz);  // 光源ベクトル
+                i.normal = normalize(i.normal);  // 法線ベクトル
+                float3 reflectDir = -lightDir + 2 * i.normal * dot(lightDir, i.normal);  // 反射ベクトル
+                float4 specular = pow(saturate(dot(eyeDir, reflectDir)), 20) * _LightColor0;  // スペキュラ成分
+
                 fixed4 col = tex2D(_MainTex, i.uv * tiling + offset);
+                col *= ambient + diffuse + specular;
+
                 return col;
             }
             ENDCG
