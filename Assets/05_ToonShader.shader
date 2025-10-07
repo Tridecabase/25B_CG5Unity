@@ -1,4 +1,4 @@
-Shader "Unlit/Texture_2"
+Shader "Unlit/05_ToonShader"
 {
      Properties
     {
@@ -50,28 +50,35 @@ Shader "Unlit/Texture_2"
                 return o;
             }
 
-            fixed4 frag (v2f i) : SV_Target
-            {
-                float2 tiling = _MainTex_ST.xy;
-                float2 offset = _MainTex_ST.zw;
+        fixed4 frag (v2f i) : SV_Target
+        {
+            float2 tiling = _MainTex_ST.xy;
+            float2 offset = _MainTex_ST.zw;
 
-                float4 ambient = _Color * 0.05 * _LightColor0; // 環境光成分
+            float intensity = saturate(dot(normalize(i.normal), _WorldSpaceLightPos0));
+            float4 ambient = _Color * 0.1 * _LightColor0; // 環境光成分
+            fixed4 diffuse = _Color * _LightColor0 * intensity;
 
-                float intensity =
-                    saturate(dot(normalize(i.normal), _WorldSpaceLightPos0));
-                fixed4 diffuse = _Color * _LightColor0 * intensity;
+            float toonIntensity = smoothstep(0.2, 0.3, intensity);
+            float3 eyeDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPosition);  // 視線ベクトル
+            float3 lightDir = normalize(_WorldSpaceLightPos0.xyz);  // 光源ベクトル
+            i.normal = normalize(i.normal);  // 法線ベクトル
+            float3 reflectDir = -lightDir + 2 * i.normal * dot(lightDir, i.normal);  // 反射ベクトル
 
-                float3 eyeDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPosition);  // 視線ベクトル
-                float3 lightDir = normalize(_WorldSpaceLightPos0.xyz);  // 光源ベクトル
-                i.normal = normalize(i.normal);  // 法線ベクトル
-                float3 reflectDir = -lightDir + 2 * i.normal * dot(lightDir, i.normal);  // 反射ベクトル
-                float4 specular = pow(saturate(dot(eyeDir, reflectDir)), 20) * _LightColor0;  // スペキュラ成分
+            float specStep = smoothstep(0.93, 0.98,saturate(dot(eyeDir, reflectDir)));
+            // float4 specular = specStep * _LightColor0;  // スペキュラ成分
 
-                fixed4 col = tex2D(_MainTex, i.uv * tiling + offset);
-                col *= ambient + diffuse + specular;
+            fixed4 col = tex2D(_MainTex, i.uv * tiling + offset);
 
-                return col;
-            }
+            fixed4 toonColor = lerp(_Color * 0.3, _Color, toonIntensity);
+
+            toonColor += _Color * 0.02 * _LightColor0;
+
+            //toonColor += diffuse * 0.8;
+            toonColor += specStep * 0.5;
+
+            return toonColor * col.a;
+        }
             ENDCG
         }
     }
