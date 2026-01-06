@@ -1,0 +1,4 @@
+repository "25B_CG5Unity/25B_CG5Unity@15668805309237@cloud"
+  path "/"
+    br "/main"
+    co "/main"
